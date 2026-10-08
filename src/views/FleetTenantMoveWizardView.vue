@@ -168,11 +168,11 @@ onMounted(load)
         <li :class="{ active: step === 4 }">Review</li>
       </ol>
 
-      <section v-if="step === 1" class="panel">
+      <section v-if="step === 1" class="panel" autocomplete="off">
         <h2>Select tenant</h2>
         <label>
           Tenant
-          <select v-model="tenantShortuid">
+          <select v-model="tenantShortuid" autocomplete="off">
             <option disabled value="">Choose…</option>
             <option v-for="t in tenants" :key="t.shortuid" :value="t.shortuid">
               {{ t.name }} ({{ t.shortuid }}) — {{ t.fqdn || 'no fqdn' }}
@@ -186,7 +186,7 @@ onMounted(load)
         <p class="hint">Source: {{ sourceInstance?.label || tenant?.instance_id }}</p>
         <label>
           Destination
-          <select v-model="destInstanceId">
+          <select v-model="destInstanceId" autocomplete="off">
             <option disabled value="">Choose…</option>
             <option v-for="i in destChoices" :key="i.id" :value="i.id">
               {{ i.label || i.fqdn }} — setid {{ i.sbc_dispatcher_setid ?? 'missing' }}
