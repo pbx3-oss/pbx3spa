@@ -168,7 +168,7 @@ onMounted(load)
         <li :class="{ active: step === 4 }">Review</li>
       </ol>
 
-      <section v-if="step === 1" class="panel" autocomplete="off">
+      <section v-if="step === 1" class="panel">
         <h2>Select tenant</h2>
         <label>
           Tenant
