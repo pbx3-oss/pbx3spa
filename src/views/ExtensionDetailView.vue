@@ -836,14 +836,25 @@ const panelTitleTenantSuffix = computed(() => {
                   Provision URL
                 </label>
                 <div class="form-field-input-wrapper">
-                  <InlineCopyInput
-                    id="edit-identity-provision-url"
-                    :value="hasProvisionUrl ? provisionUrl : '—'"
-                    :disabled="!hasProvisionUrl || saving"
-                    :copied="copiedSipKey === 'provision'"
-                    copy-label="Copy Provision URL"
-                    @copy="copyProvisionUrl"
-                  />
+                  <div class="sip-passwd-inline">
+                    <InlineCopyInput
+                      id="edit-identity-provision-url"
+                      :value="hasProvisionUrl ? provisionUrl : '—'"
+                      :disabled="!hasProvisionUrl || saving"
+                      :show-copy="false"
+                    />
+                    <button
+                      type="button"
+                      class="sip-action-btn"
+                      :disabled="!hasProvisionUrl || saving"
+                      :aria-label="
+                        copiedSipKey === 'provision' ? 'Copied' : 'Copy Provision URL'
+                      "
+                      @click="copyProvisionUrl"
+                    >
+                      {{ copiedSipKey === 'provision' ? 'Copied' : 'Copy' }}
+                    </button>
+                  </div>
                 </div>
               </div>
               <FormReadonly
