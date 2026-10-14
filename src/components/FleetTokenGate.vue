@@ -5,7 +5,7 @@
  * S10.1: session must include fleet_read (enforced after login /me).
  * S10.8: form kinship with LoginView credentials.
  */
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import {
   hasFleetGatekeeperToken,
   setFleetGatekeeperToken,
@@ -133,6 +133,14 @@ defineExpose({
     hasToken.value = hasFleetGatekeeperToken()
   }
 })
+
+onBeforeUnmount(() => {
+  // Avoid Safari Keychain “save password” when leaving Fleet with creds still mounted.
+  password.value = ''
+  tokenDraft.value = ''
+  totpCode.value = ''
+  email.value = ''
+})
 </script>
 
 <template>
@@ -185,7 +193,9 @@ defineExpose({
           Enter the digits from your authenticator app, or a recovery string.
         </p>
         <!-- Safari AutoFill often ignores autocomplete=off and maps short
-             text fields to postal/address. Soak that into decoys first. -->
+             text fields to postal/address. Soak that into decoys first.
+             Use one-time-code (not new-password) so Verify does not queue a
+             Keychain “save password” prompt on the next navigation. -->
         <div class="autofill-decoy" aria-hidden="true">
           <input
             type="text"
@@ -219,7 +229,8 @@ defineExpose({
           v-model="totpCode"
           type="text"
           name="fleet_mfa_token"
-          autocomplete="new-password"
+          autocomplete="one-time-code"
+          inputmode="numeric"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
@@ -254,13 +265,27 @@ defineExpose({
           (treated as <code>fleet_admin</code>). Day-to-day operators should use Sign in above.
           Break-glass is not subject to TOTP.
         </p>
-        <form class="token-form break-glass-form" @submit.prevent="saveToken">
+        <form
+          class="token-form break-glass-form"
+          autocomplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          @submit.prevent="saveToken"
+        >
           <label for="fleet-gate-token">Break-glass token</label>
+          <!-- text, not password — Safari Keychain treats type=password submit as “save login”. -->
           <input
             id="fleet-gate-token"
             v-model="tokenDraft"
-            type="password"
+            type="text"
             autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-bwignore="true"
+            data-form-type="other"
             placeholder="Paste break-glass token"
           />
           <button type="submit" class="btn-secondary" :disabled="busy">Save for session</button>
