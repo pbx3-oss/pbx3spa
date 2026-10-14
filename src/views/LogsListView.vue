@@ -40,6 +40,8 @@ const ARCHIVE_CLASSES = [
 /** Friendlier Local list labels (API path stays the key for download/view). */
 function logDisplayLabel(path) {
   const p = String(path || '')
+  if (p === 'asterisk/security' || p === 'astsecurity') return 'Asterisk security'
+  if (p === 'asterisk/messages' || p === 'astmessages') return 'Asterisk messages'
   if (p === 'astsipdebug') return 'SIP text (live)'
   if (p.startsWith('sip-text/')) return `SIP text · ${p.slice('sip-text/'.length)}`
   if (p.startsWith('siplog/')) return `SIP pcap · ${p.slice('siplog/'.length)}`
