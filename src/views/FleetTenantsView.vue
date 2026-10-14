@@ -258,6 +258,10 @@ function onDocClick(e) {
 
 function goMove(t) {
   closeRowMenu()
+  // Drop create-panel values before navigate — Safari may treat leftover
+  // text fields as a login save candidate on the next screen.
+  showCreate.value = false
+  createForm.value = { instance_id: '', pkey: '', description: '', clusterclid: '', localarea: '' }
   router.push({ name: 'fleet-tenant-move', query: { tenant: t.shortuid } })
 }
 
@@ -267,6 +271,8 @@ onMounted(() => {
 })
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick)
+  showCreate.value = false
+  createForm.value = { instance_id: '', pkey: '', description: '', clusterclid: '', localarea: '' }
 })
 </script>
 
@@ -308,7 +314,14 @@ onUnmounted(() => {
     <p v-if="loading">Loading…</p>
     <p v-else-if="error" class="error">{{ error }}</p>
 
-    <form v-if="showCreate" class="create-panel" @submit.prevent="submitCreate">
+    <form
+      v-if="showCreate"
+      class="create-panel"
+      autocomplete="off"
+      data-lpignore="true"
+      data-1p-ignore="true"
+      @submit.prevent="submitCreate"
+    >
       <h2>Create tenant</h2>
       <p class="hint">
         Home instance must already have an SBC dispatcher setid. DID attach is a separate Fleet DIDs
@@ -316,7 +329,7 @@ onUnmounted(() => {
       </p>
       <label>
         Home instance
-        <select v-model="createForm.instance_id" required>
+        <select v-model="createForm.instance_id" required autocomplete="off">
           <option disabled value="">Select instance…</option>
           <option v-for="i in instanceOptions" :key="i.id" :value="i.id">
             {{ i.label || i.fqdn || i.id }}
@@ -330,16 +343,34 @@ onUnmounted(() => {
       </label>
       <label>
         Description
-        <input v-model="createForm.description" type="text" required placeholder="Notes (not the Name)" />
+        <input
+          v-model="createForm.description"
+          type="text"
+          autocomplete="off"
+          required
+          placeholder="Notes (not the Name)"
+        />
       </label>
       <p class="hint">Name (pkey) is how Fleet lists this tenant. Description is free-form notes only.</p>
       <label>
         Cluster CLID
-        <input v-model="createForm.clusterclid" type="text" inputmode="numeric" placeholder="digits" />
+        <input
+          v-model="createForm.clusterclid"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="digits"
+        />
       </label>
       <label>
         Local area
-        <input v-model="createForm.localarea" type="text" inputmode="numeric" placeholder="digits" />
+        <input
+          v-model="createForm.localarea"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="digits"
+        />
       </label>
       <p v-if="createError" class="error">{{ createError }}</p>
       <div class="create-actions">
