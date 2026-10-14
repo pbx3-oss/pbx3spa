@@ -477,7 +477,7 @@ const panelTitleTenantSuffix = computed(() => {
               v-model="editMembers"
               label="Members"
               type="text"
-              placeholder="Comma-separated member list"
+              placeholder="Whitespace-separated member list"
             />
           </div>
 

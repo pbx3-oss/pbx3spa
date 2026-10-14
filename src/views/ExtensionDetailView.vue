@@ -54,6 +54,8 @@ const editExtalert = ref('')
 const editNamedCallGroup = ref('ALL')
 const editNamedPickupGroup = ref('ALL')
 const editMacaddr = ref('')
+const editProvision = ref('')
+const editSndcreds = ref('Once')
 const editProtocol = ref('IPV4')
 const editTechnology = ref('SIP')
 const editVmailfwd = ref('')
@@ -71,9 +73,12 @@ const regeneratingSip = ref(false)
 const regenerateSipError = ref('')
 /** Cleared on every (re)load; set after regenerate or when operator clicks Show. */
 const sipPasswordRevealed = ref(false)
-/** Which SIP credential just copied (`user` | `passwd` | `registrar`) — drives in-field checkmark. */
+/** Which SIP credential just copied (`user` | `passwd` | `registrar` | `provision`) — drives in-field checkmark. */
 const copiedSipKey = ref('')
 let copiedSipTimer = null
+const resetProvisionError = ref('')
+const resettingProvision = ref(false)
+const confirmResetProvisionOpen = ref(false)
 const cosProfiles = ref([])
 const editCosProfile = ref('')
 const cosProfilesLoading = ref(false)
@@ -92,6 +97,24 @@ const isWebRtcExtension = computed(() => {
 })
 
 const hasCellphone = computed(() => String(editCellphone.value ?? '').trim() !== '')
+
+const provisionUrl = computed(() => {
+  const u = extension.value?.provision_url
+  return u != null && String(u).trim() !== '' ? String(u).trim() : ''
+})
+const hasProvisionUrl = computed(() => provisionUrl.value !== '')
+const lastProvisionedLabel = computed(() => {
+  const v = extension.value?.last_provisioned_at
+  return v != null && String(v).trim() !== '' ? String(v).trim() : '—'
+})
+const sndcredsOptions = [
+  { value: 'Once', label: 'Once (default)' },
+  { value: 'Always', label: 'Always (every GET)' },
+  { value: 'No', label: 'No (omit secrets)' }
+]
+const showProvisionPanel = computed(
+  () => !isWebRtcExtension.value
+)
 
 watch(editCellphone, (val) => {
   if (!String(val ?? '').trim()) editCelltwin.value = 'OFF'
@@ -213,6 +236,12 @@ async function fetchExtension() {
         ? String(ext.named_pickup_group).trim()
         : legacyNamed ?? 'ALL'
     editMacaddr.value = ext?.macaddr != null ? String(ext.macaddr).trim() : ''
+    editProvision.value = ext?.provision != null ? String(ext.provision) : ''
+    {
+      const sc = ext?.sndcreds != null ? String(ext.sndcreds).trim() : ''
+      editSndcreds.value =
+        sc === 'Always' || sc === 'No' || sc === 'Once' ? sc : 'Once'
+    }
     editProtocol.value = ext?.protocol ?? 'IPV4'
     editTechnology.value = ext?.technology ?? 'SIP'
     editVmailfwd.value = ext?.vmailfwd ?? ''
@@ -359,6 +388,11 @@ async function saveEdit(e) {
       vmailfwd: editVmailfwd.value.trim() || undefined,
       cos_profile: editCosProfile.value.trim() || null
     }
+    if (!isWebRtcExtension.value) {
+      // Always send so clearing the textarea clears ipphone.provision
+      body.provision = editProvision.value.trim() || null
+      body.sndcreds = editSndcreds.value || 'Once'
+    }
     if (auth.isAdmin) {
       // Always send so clearing the textarea removes the DB overlay
       body.pjsip_overlay = editPjsipOverlay.value.trim() || null
@@ -476,6 +510,38 @@ async function copySipRegistrar() {
   })
 }
 
+async function copyProvisionUrl() {
+  await copyText(hasProvisionUrl.value ? provisionUrl.value : '', {
+    empty: 'No provision URL (set a MAC address)',
+    key: 'provision'
+  })
+}
+
+async function confirmResetProvision() {
+  resetProvisionError.value = ''
+  resettingProvision.value = true
+  try {
+    const data = await getApiClient().post(
+      `extensions/${encodeURIComponent(shortuid.value)}/reset-provision-state`,
+      {}
+    )
+    if (extension.value && data && typeof data === 'object') {
+      Object.assign(extension.value, data)
+    }
+    confirmResetProvisionOpen.value = false
+    toast.show('Provision state reset to Once — next phone GET will include secrets again.')
+  } catch (err) {
+    resetProvisionError.value = firstErrorMessage(err, 'Failed to reset provision state')
+  } finally {
+    resettingProvision.value = false
+  }
+}
+
+function cancelResetProvision() {
+  confirmResetProvisionOpen.value = false
+  resetProvisionError.value = ''
+}
+
 async function confirmRegenerateSip() {
   regenerateSipError.value = ''
   regeneratingSip.value = true
@@ -490,7 +556,7 @@ async function confirmRegenerateSip() {
     sipPasswordRevealed.value = true
     confirmRegenerateSipOpen.value = false
     toast.show(
-      'SIP password regenerated. Copy the new value into the phone before it can register again.'
+      'SIP password regenerated. Provision state set to Once — copy the new secret into the phone (or reprovision) before it can register again.'
     )
   } catch (err) {
     regenerateSipError.value = firstErrorMessage(err, 'Failed to regenerate SIP password')
@@ -747,6 +813,74 @@ const panelTitleTenantSuffix = computed(() => {
                 placeholder="12 hex digits or 00:11:22:33:44:55"
               />
             </template>
+            <template v-if="showProvisionPanel">
+              <FormField
+                id="edit-identity-provision"
+                v-model="editProvision"
+                label="Provision stream"
+                type="text"
+                placeholder="#INCLUDE snom.Extension&#10;#INCLUDE snom.udp&#10;#INCLUDE site.ReceptionBLF"
+                hint="System #INCLUDEs first, then Customer site.… fragments. Softkey *.Fkey includes are ignored. Prefer $… symbolics for secrets."
+                :multiline="true"
+                :rows="6"
+              />
+              <ul
+                v-if="extension?.provision_warnings?.length"
+                class="provision-warnings"
+                role="status"
+              >
+                <li v-for="(w, i) in extension.provision_warnings" :key="i">{{ w }}</li>
+              </ul>
+              <div class="form-field sip-passwd-field readonly-identity">
+                <label for="edit-identity-provision-url" class="form-field-label">
+                  Provision URL
+                </label>
+                <div class="form-field-input-wrapper">
+                  <div class="sip-passwd-inline">
+                    <InlineCopyInput
+                      id="edit-identity-provision-url"
+                      :value="hasProvisionUrl ? provisionUrl : '—'"
+                      :disabled="!hasProvisionUrl || saving"
+                      :show-copy="false"
+                    />
+                    <button
+                      type="button"
+                      class="sip-action-btn"
+                      :disabled="!hasProvisionUrl || saving"
+                      :aria-label="
+                        copiedSipKey === 'provision' ? 'Copied' : 'Copy Provision URL'
+                      "
+                      @click="copyProvisionUrl"
+                    >
+                      {{ copiedSipKey === 'provision' ? 'Copied' : 'Copy' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <FormReadonly
+                id="edit-identity-last-provisioned"
+                label="Last provisioned"
+                :value="lastProvisionedLabel"
+                class="readonly-identity"
+              />
+              <FormSelect
+                id="edit-identity-sndcreds"
+                v-model="editSndcreds"
+                label="Provision credentials"
+                :options="sndcredsOptions"
+                hint="Once = secrets on next GET only. Always = every GET (needed for some Poly / stubborn vendors). No = omit secrets."
+              />
+              <div class="form-field readonly-identity">
+                <button
+                  type="button"
+                  class="sip-regenerate-btn"
+                  :disabled="saving || resettingProvision || editSndcreds === 'Always'"
+                  @click="confirmResetProvisionOpen = true"
+                >
+                  Reset to Once
+                </button>
+              </div>
+            </template>
             <FormSelect
               id="edit-cluster"
               v-model="editCluster"
@@ -958,7 +1092,8 @@ const panelTitleTenantSuffix = computed(() => {
             </p>
             <p class="sip-modal-hint">
               Use <strong>Commit</strong> when you are ready so Asterisk config matches the
-              database.
+              database. Provision credential mode is set back to <strong>Once</strong> so the next
+              phone config GET can include the new secret.
             </p>
             <p v-if="regenerateSipError" class="error">{{ regenerateSipError }}</p>
           </div>
@@ -977,6 +1112,49 @@ const panelTitleTenantSuffix = computed(() => {
               @click="confirmRegenerateSip"
             >
               {{ regeneratingSip ? 'Regenerating…' : 'Regenerate' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="confirmResetProvisionOpen"
+        class="sip-modal-backdrop"
+        @click.self="cancelResetProvision"
+      >
+        <div
+          class="sip-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reset-provision-title"
+        >
+          <h2 id="reset-provision-title" class="sip-modal-title">Reset provision state?</h2>
+          <div class="sip-modal-body">
+            <p>
+              Sets <strong>Provision credentials</strong> to <strong>Once</strong> so the next
+              successful config download includes SIP/admin secrets again (typical after a factory
+              reset). For phones that need secrets on every poll (e.g. Poly), choose
+              <strong>Always</strong> in the dropdown instead.
+            </p>
+            <p v-if="resetProvisionError" class="error">{{ resetProvisionError }}</p>
+          </div>
+          <div class="sip-modal-actions">
+            <button
+              type="button"
+              class="sip-modal-btn sip-modal-btn-cancel"
+              @click="cancelResetProvision"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="sip-modal-btn sip-modal-btn-confirm"
+              :disabled="resettingProvision"
+              @click="confirmResetProvision"
+            >
+              {{ resettingProvision ? 'Resetting…' : 'Reset to Once' }}
             </button>
           </div>
         </div>
@@ -1087,6 +1265,12 @@ const panelTitleTenantSuffix = computed(() => {
 .readonly-identity :deep(.form-field-label),
 .readonly-identity :deep(.form-readonly) {
   color: #94a3b8;
+}
+.provision-warnings {
+  margin: -0.25rem 0 1rem;
+  padding-left: 1.25rem;
+  color: #a16207;
+  font-size: 0.9rem;
 }
 .readonly-identity :deep(.form-readonly) {
   background-color: #f1f5f9;

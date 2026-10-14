@@ -5,6 +5,7 @@ import { getApiClient } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
 import { firstErrorMessage } from '@/utils/formErrors'
 import PanelBackLink from '@/components/PanelBackLink.vue'
+import FormField from '@/components/forms/FormField.vue'
 import { useUnsavedForm } from '@/composables/useUnsavedForm'
 import { refreshCommitStatusUi } from '@/utils/commitStatus'
 const route = useRoute()
@@ -82,8 +83,27 @@ watch(filename, loadFile)
     </section>
 
     <template v-else>
-      <p v-if="readonly" class="readonly-badge">Read-only (view only)</p>
-      <form v-if="!readonly" class="edit-form" @submit="saveEdit" @input="markDirty" @change="markDirty">
+      <!-- Read-only: same disabled FormField treatment as Provision streams Body -->
+      <form v-if="readonly" class="edit-form" @submit.prevent>
+        <div class="edit-actions edit-actions-top">
+          <button type="button" class="secondary" @click="goBack">Cancel</button>
+        </div>
+        <div class="form-fields body-field">
+          <FormField
+            id="astfile-content"
+            :model-value="content"
+            label="Contents"
+            multiline
+            :rows="24"
+            disabled
+            hint="Read-only — this file cannot be edited here."
+          />
+        </div>
+        <div class="edit-actions">
+          <button type="button" class="secondary" @click="goBack">Cancel</button>
+        </div>
+      </form>
+      <form v-else class="edit-form" @submit="saveEdit" @input="markDirty" @change="markDirty">
         <div class="edit-actions edit-actions-top">
           <button type="submit" :disabled="saving">
             {{ saving ? 'Saving…' : 'Save' }}
@@ -91,13 +111,13 @@ watch(filename, loadFile)
           <button type="button" class="secondary" @click="goBack">Cancel</button>
         </div>
         <p v-if="saveError" class="error">{{ saveError }}</p>
-        <div class="field">
-          <textarea
+        <div class="form-fields body-field">
+          <FormField
+            id="astfile-content"
             v-model="editContent"
-            class="file-textarea"
-            spellcheck="false"
-            rows="24"
-            aria-label="File contents"
+            label="Contents"
+            multiline
+            :rows="24"
           />
         </div>
         <div class="edit-actions">
@@ -107,9 +127,6 @@ watch(filename, loadFile)
           <button type="button" class="secondary" @click="goBack">Cancel</button>
         </div>
       </form>
-      <div v-else class="file-content-wrap">
-        <pre class="file-pre">{{ content }}</pre>
-      </div>
     </template>
   </div>
 </template>
@@ -119,7 +136,8 @@ watch(filename, loadFile)
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 90rem;
+  /* Left-align with other panels (no horizontal centering) */
+  max-width: none;
 }
 .detail-header h1 {
   margin: 0;
@@ -134,16 +152,17 @@ watch(filename, loadFile)
 .error {
   color: #b91c1c;
 }
-.readonly-badge {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-.edit-form,
-.file-content-wrap {
+.edit-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+}
+.body-field {
+  max-width: 70rem;
 }
 .edit-actions {
   display: flex;
@@ -173,31 +192,18 @@ watch(filename, loadFile)
 .edit-actions button.secondary:hover {
   background: #f1f5f9;
 }
-.field {
-  margin: 0;
+/* Label above, full-width body — box centered with the panel (not right-column grid) */
+.body-field :deep(.form-field) {
+  grid-template-columns: 1fr;
+  gap: 0.375rem;
 }
-.file-textarea,
-.file-pre {
-  width: 100%;
-  box-sizing: border-box;
-  font-family: ui-monospace, monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  background: #f8fafc;
+.body-field :deep(.form-field-label) {
+  padding-top: 0;
 }
-.file-textarea {
-  resize: vertical;
-  min-height: 20rem;
-}
-.file-pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-all;
-  overflow-x: auto;
-  max-height: 70vh;
-  overflow-y: auto;
+.body-field :deep(.form-input-textarea) {
+  min-height: 28rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 </style>
