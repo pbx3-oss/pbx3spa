@@ -398,7 +398,7 @@ async function onSubmit(e) {
           v-model="members"
           label="Members"
           type="text"
-          placeholder="Comma-separated member list"
+          placeholder="Whitespace-separated member list"
         />
       </div>
 
