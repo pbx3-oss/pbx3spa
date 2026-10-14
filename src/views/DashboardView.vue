@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { getApiClient } from '@/api/client'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import HomeHostStrip from '@/components/home/HomeHostStrip.vue'
@@ -22,7 +22,7 @@ const actionConfirmLabel = ref('OK')
 const actionConfirmVariant = ref('primary')
 const pendingSysCommand = ref(null)
 
-const { pulse, loading: pulseLoading, error: pulseError } = useHomePulse({
+const { pulse, loading: pulseLoading, error: pulseError, load: refreshPulse } = useHomePulse({
   include: ['system', 'live', 'cdr']
 })
 
@@ -31,6 +31,44 @@ const sysglobal = ref(null)
 const sysnotesLoading = ref(false)
 const sysnotesError = ref('')
 const sysnotesFetched = ref(false)
+
+/**
+ * Optimistic runstate after start/stop. Pulse system block is cached ~45s on the
+ * API, so without this (and API cache invalidation) Stop can stick until TTL.
+ */
+const pbxRunstateOverride = ref(null)
+
+const pbxRunstate = computed(
+  () => pbxRunstateOverride.value ?? pulse.value?.system?.pbx_runstate ?? null
+)
+/** Exclusive Start/Stop; keep the in-flight button visible until command ends. */
+const showStartPbx = computed(
+  () => actionBusy.value === 'start' || pbxRunstate.value === 'STOPPED'
+)
+const showStopPbx = computed(
+  () => actionBusy.value === 'stop' || pbxRunstate.value === 'RUNNING'
+)
+
+function applyPbxRunstateOptimistic(next) {
+  pbxRunstateOverride.value = next
+}
+
+/** Host strip uses the same effective runstate as the Start/Stop buttons. */
+const hostStripSystem = computed(() => {
+  const sys = pulse.value?.system
+  if (!sys) return null
+  if (!pbxRunstateOverride.value) return sys
+  return { ...sys, pbx_runstate: pbxRunstateOverride.value }
+})
+
+watch(
+  () => pulse.value?.system?.pbx_runstate,
+  (state) => {
+    if (pbxRunstateOverride.value && state === pbxRunstateOverride.value) {
+      pbxRunstateOverride.value = null
+    }
+  }
+)
 
 const displaySitename = computed(() => {
   const fromGlobals = (sysglobal.value?.sitename ?? '').trim()
@@ -78,6 +116,10 @@ async function executeSysCommand(command) {
   try {
     await getApiClient().get(`syscommands/${command}`)
     actionMessage.value = `Command "${command}" completed.`
+    if (command === 'start' || command === 'stop') {
+      applyPbxRunstateOptimistic(command === 'start' ? 'RUNNING' : 'STOPPED')
+      await refreshPulse()
+    }
   } catch (err) {
     const msg = err.data?.message || err.message || `Failed to run ${command}`
     const detail = err.data?.detail
@@ -160,10 +202,22 @@ function reboot() {
     <div v-if="auth.isAdmin" class="action-buttons">
       <p v-if="actionMessage" class="message">{{ actionMessage }}</p>
       <p v-if="actionError" class="error">{{ actionError }}</p>
-      <button type="button" class="btn-action" :disabled="actionBusy != null" @click="startPbx">
+      <button
+        v-if="showStartPbx"
+        type="button"
+        class="btn-action"
+        :disabled="actionBusy != null"
+        @click="startPbx"
+      >
         {{ actionBusy === 'start' ? 'Running…' : 'Start PBX' }}
       </button>
-      <button type="button" class="btn-action" :disabled="actionBusy != null" @click="stopPbx">
+      <button
+        v-if="showStopPbx"
+        type="button"
+        class="btn-action"
+        :disabled="actionBusy != null"
+        @click="stopPbx"
+      >
         {{ actionBusy === 'stop' ? 'Running…' : 'Stop PBX' }}
       </button>
       <button type="button" class="btn-danger" :disabled="actionBusy != null" @click="reboot">
@@ -188,8 +242,8 @@ function reboot() {
     <p v-else-if="pulseError && !pulse" class="error">{{ pulseError }}</p>
 
     <template v-if="pulse">
-      <section v-if="pulse.system" class="pulse-section">
-        <HomeHostStrip :system="pulse.system" />
+      <section v-if="hostStripSystem" class="pulse-section">
+        <HomeHostStrip :system="hostStripSystem" />
       </section>
 
       <section v-if="pulse.live" class="pulse-section">
