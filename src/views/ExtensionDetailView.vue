@@ -1360,10 +1360,6 @@ const panelTitleTenantSuffix = computed(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.provision-preview-modal {
-  max-width: min(90rem, 98vw);
-  width: 100%;
-}
 .provision-preview-hint {
   margin: 0 0 0.75rem;
   font-size: 0.9rem;
@@ -1569,6 +1565,9 @@ const panelTitleTenantSuffix = computed(() => {
   padding: 1.5rem;
   max-width: 26rem;
   width: 100%;
+}
+.sip-modal.provision-preview-modal {
+  max-width: min(90rem, 98vw);
 }
 .sip-modal-title {
   margin: 0 0 0.75rem 0;
