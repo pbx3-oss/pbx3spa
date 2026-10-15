@@ -1567,7 +1567,7 @@ const panelTitleTenantSuffix = computed(() => {
   width: 100%;
 }
 .sip-modal.provision-preview-modal {
-  max-width: min(90rem, 98vw);
+  max-width: min(75rem, 98vw);
 }
 .sip-modal-title {
   margin: 0 0 0.75rem 0;
