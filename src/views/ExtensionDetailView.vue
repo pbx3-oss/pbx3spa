@@ -858,7 +858,18 @@ const panelTitleTenantSuffix = computed(() => {
                 hint="System #INCLUDEs first, then Customer site.… fragments. Softkey *.Fkey includes are ignored. Prefer $… symbolics for secrets."
                 :multiline="true"
                 :rows="6"
+                class="provision-stream-field"
               />
+              <div class="provision-expand-row">
+                <button
+                  type="button"
+                  class="sip-action-btn"
+                  :disabled="saving || provisionPreviewLoading"
+                  @click="openProvisionPreview"
+                >
+                  Expand
+                </button>
+              </div>
               <ul
                 v-if="extension?.provision_warnings?.length"
                 class="provision-warnings"
@@ -906,14 +917,6 @@ const panelTitleTenantSuffix = computed(() => {
                 hint="Once = secrets on next GET only. Always = every GET (needed for some Poly / stubborn vendors). No = omit secrets."
               />
               <div class="form-field readonly-identity provision-actions">
-                <button
-                  type="button"
-                  class="sip-regenerate-btn"
-                  :disabled="saving || provisionPreviewLoading"
-                  @click="openProvisionPreview"
-                >
-                  Expand / Preview
-                </button>
                 <button
                   type="button"
                   class="sip-regenerate-btn"
@@ -1354,6 +1357,21 @@ const panelTitleTenantSuffix = computed(() => {
 .readonly-identity :deep(.form-field-label),
 .readonly-identity :deep(.form-readonly) {
   color: #94a3b8;
+}
+.provision-stream-field {
+  margin-bottom: 0.375rem;
+}
+.provision-expand-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2fr;
+  gap: 0.375rem 1rem;
+  margin: 0 0 0.75rem;
+}
+.provision-expand-row .sip-action-btn {
+  grid-column: 2;
+  justify-self: start;
+  align-self: auto;
+  height: 2.25rem;
 }
 .provision-actions {
   display: flex;
