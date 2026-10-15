@@ -1361,7 +1361,7 @@ const panelTitleTenantSuffix = computed(() => {
   gap: 0.5rem;
 }
 .provision-preview-modal {
-  max-width: min(48rem, 96vw);
+  max-width: min(90rem, 98vw);
   width: 100%;
 }
 .provision-preview-hint {
@@ -1371,7 +1371,7 @@ const panelTitleTenantSuffix = computed(() => {
 }
 .provision-preview-body {
   margin: 0;
-  max-height: min(60vh, 32rem);
+  max-height: min(70vh, 40rem);
   overflow: auto;
   padding: 0.75rem;
   background: #f3f4f6;
@@ -1379,8 +1379,8 @@ const panelTitleTenantSuffix = computed(() => {
   border-radius: 0.25rem;
   font-size: 0.75rem;
   line-height: 1.35;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  word-break: normal;
 }
 .provision-warnings {
   margin: -0.25rem 0 1rem;
