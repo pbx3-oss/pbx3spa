@@ -79,6 +79,11 @@ let copiedSipTimer = null
 const resetProvisionError = ref('')
 const resettingProvision = ref(false)
 const confirmResetProvisionOpen = ref(false)
+const provisionPreviewOpen = ref(false)
+const provisionPreviewLoading = ref(false)
+const provisionPreviewError = ref('')
+const provisionPreviewBody = ref('')
+const provisionPreviewMisses = ref([])
 const cosProfiles = ref([])
 const editCosProfile = ref('')
 const cosProfilesLoading = ref(false)
@@ -542,6 +547,36 @@ function cancelResetProvision() {
   resetProvisionError.value = ''
 }
 
+async function openProvisionPreview() {
+  provisionPreviewError.value = ''
+  provisionPreviewBody.value = ''
+  provisionPreviewMisses.value = []
+  provisionPreviewOpen.value = true
+  provisionPreviewLoading.value = true
+  try {
+    const data = await getApiClient().post(
+      `extensions/${encodeURIComponent(shortuid.value)}/provision-preview`,
+      { provision: editProvision.value }
+    )
+    provisionPreviewBody.value =
+      data && typeof data.body === 'string' ? data.body : ''
+    provisionPreviewMisses.value = Array.isArray(data?.include_misses)
+      ? data.include_misses
+      : []
+  } catch (err) {
+    provisionPreviewError.value = firstErrorMessage(err, 'Failed to expand provision stream')
+  } finally {
+    provisionPreviewLoading.value = false
+  }
+}
+
+function closeProvisionPreview() {
+  provisionPreviewOpen.value = false
+  provisionPreviewError.value = ''
+  provisionPreviewBody.value = ''
+  provisionPreviewMisses.value = []
+}
+
 async function confirmRegenerateSip() {
   regenerateSipError.value = ''
   regeneratingSip.value = true
@@ -870,7 +905,15 @@ const panelTitleTenantSuffix = computed(() => {
                 :options="sndcredsOptions"
                 hint="Once = secrets on next GET only. Always = every GET (needed for some Poly / stubborn vendors). No = omit secrets."
               />
-              <div class="form-field readonly-identity">
+              <div class="form-field readonly-identity provision-actions">
+                <button
+                  type="button"
+                  class="sip-regenerate-btn"
+                  :disabled="saving || provisionPreviewLoading"
+                  @click="openProvisionPreview"
+                >
+                  Expand / Preview
+                </button>
                 <button
                   type="button"
                   class="sip-regenerate-btn"
@@ -1161,6 +1204,52 @@ const panelTitleTenantSuffix = computed(() => {
       </div>
     </Teleport>
 
+    <Teleport to="body">
+      <div
+        v-if="provisionPreviewOpen"
+        class="sip-modal-backdrop"
+        @click.self="closeProvisionPreview"
+      >
+        <div
+          class="sip-modal provision-preview-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="provision-preview-title"
+        >
+          <h2 id="provision-preview-title" class="sip-modal-title">Provision expand preview</h2>
+          <div class="sip-modal-body">
+            <p class="provision-preview-hint">
+              Dry-run of the current (or draft) stream — secrets masked. Does not send to the phone
+              or change provision credentials.
+            </p>
+            <p v-if="provisionPreviewLoading">Expanding…</p>
+            <p v-else-if="provisionPreviewError" class="error">{{ provisionPreviewError }}</p>
+            <template v-else>
+              <ul
+                v-if="provisionPreviewMisses.length"
+                class="provision-warnings"
+                role="status"
+              >
+                <li v-for="(m, i) in provisionPreviewMisses" :key="i">
+                  Missing #INCLUDE: {{ m }}
+                </li>
+              </ul>
+              <pre class="provision-preview-body">{{ provisionPreviewBody }}</pre>
+            </template>
+          </div>
+          <div class="sip-modal-actions">
+            <button
+              type="button"
+              class="sip-modal-btn sip-modal-btn-confirm"
+              @click="closeProvisionPreview"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <DeleteConfirmModal
       :show="confirmDeleteOpen"
       title="Delete extension?"
@@ -1265,6 +1354,33 @@ const panelTitleTenantSuffix = computed(() => {
 .readonly-identity :deep(.form-field-label),
 .readonly-identity :deep(.form-readonly) {
   color: #94a3b8;
+}
+.provision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.provision-preview-modal {
+  max-width: min(48rem, 96vw);
+  width: 100%;
+}
+.provision-preview-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+.provision-preview-body {
+  margin: 0;
+  max-height: min(60vh, 32rem);
+  overflow: auto;
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .provision-warnings {
   margin: -0.25rem 0 1rem;
