@@ -1369,7 +1369,7 @@ const panelTitleTenantSuffix = computed(() => {
 }
 .provision-expand-row .sip-action-btn {
   grid-column: 2;
-  justify-self: start;
+  justify-self: end;
   align-self: auto;
   height: 2.25rem;
 }
