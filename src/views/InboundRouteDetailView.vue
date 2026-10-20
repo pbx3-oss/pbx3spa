@@ -9,7 +9,6 @@ import { loadTenantOptions } from '@/utils/loadTenantOptions'
 import { firstErrorMessage } from '@/utils/formErrors'
 import FormField from '@/components/forms/FormField.vue'
 import FormSelect from '@/components/forms/FormSelect.vue'
-import FormSegmentedPill from '@/components/forms/FormSegmentedPill.vue'
 import FormToggle from '@/components/forms/FormToggle.vue'
 import FormReadonly from '@/components/forms/FormReadonly.vue'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal.vue'
@@ -47,8 +46,6 @@ const editCname = ref('')
 const editDevicerec = ref('None')
 const editMoh = ref('NO')
 const editSwoclip = ref('YES')
-const editDisa = ref('None')
-const editDisapass = ref('')
 const editInprefix = ref('')
 const editTag = ref('')
 const saveError = ref('')
@@ -236,8 +233,6 @@ function syncEditFromRoute() {
   editDevicerec.value = normalizeDevicerec(r.devicerec)
   editMoh.value = r.moh === 'YES' ? 'YES' : 'NO'
   editSwoclip.value = r.swoclip ?? 'YES'
-  editDisa.value = r.disa?.trim() || 'None'
-  editDisapass.value = r.disapass ?? ''
   editInprefix.value = r.inprefix != null ? String(r.inprefix) : ''
   editTag.value = r.tag ?? ''
 }
@@ -312,11 +307,9 @@ async function saveEdit(e) {
       devicerec: editDevicerec.value || 'None',
       moh: editMoh.value,
       swoclip: editSwoclip.value,
-      disa:
-        editDisa.value.trim() && editDisa.value.trim() !== 'None'
-          ? editDisa.value.trim()
-          : undefined,
-      disapass: editDisapass.value.trim() || undefined,
+      // #8c: clear any legacy DISA/CALLBACK on save (modes dropped / hidden).
+      disa: '',
+      disapass: '',
       inprefix: inprefixVal !== undefined && !isNaN(inprefixVal) ? inprefixVal : undefined,
       tag: editTag.value.trim() || undefined
     }
@@ -541,19 +534,6 @@ const panelTitleTenantSuffix = computed(() => {
               help-pkey="swoclip"
               yes-value="YES"
               no-value="NO"
-            />
-            <FormSegmentedPill
-              id="edit-disa"
-              v-model="editDisa"
-              label="DISA"
-              :options="['None', 'DISA', 'CALLBACK']"
-            />
-            <FormField
-              id="edit-disapass"
-              v-model="editDisapass"
-              label="DISA pass (optional)"
-              type="text"
-              autocomplete="off"
             />
             <FormField
               id="edit-inprefix"
