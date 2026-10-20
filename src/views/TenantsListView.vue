@@ -39,6 +39,32 @@ function timerStatusDisplay(t) {
   return force
 }
 
+/** SIP domain for phones — same string as tenant edit Identity → FQDN. */
+function tenantFqdn(t) {
+  const f = t?.fqdn != null ? String(t.fqdn).trim() : ''
+  if (f) return f
+  const su = t?.shortuid != null ? String(t.shortuid).trim() : ''
+  return su ? `${su}.pbx3.com` : ''
+}
+
+const copiedFqdn = ref('')
+let copiedFqdnTimer = 0
+
+async function copyTenantFqdn(fqdn) {
+  if (!fqdn) return
+  try {
+    await navigator.clipboard.writeText(fqdn)
+    copiedFqdn.value = fqdn
+    window.clearTimeout(copiedFqdnTimer)
+    copiedFqdnTimer = window.setTimeout(() => {
+      if (copiedFqdn.value === fqdn) copiedFqdn.value = ''
+    }, 1500)
+    toast.show('FQDN copied')
+  } catch {
+    toast.show('Could not copy FQDN', 'error')
+  }
+}
+
 // --- Filter ---
 const filteredTenants = computed(() => {
   const list = tenants.value
@@ -47,6 +73,7 @@ const filteredTenants = computed(() => {
   return list.filter((t) => {
     const pkey = (t.pkey ?? '').toString().toLowerCase()
     const shortuid = (t.shortuid ?? '').toString().toLowerCase()
+    const fqdn = tenantFqdn(t).toLowerCase()
     const desc = (t.description ?? '').toString().toLowerCase()
     const clid = (t.clusterclid ?? '').toString().toLowerCase()
     const abstime = (t.abstimeout ?? '').toString().toLowerCase()
@@ -56,6 +83,7 @@ const filteredTenants = computed(() => {
     return (
       pkey.includes(q) ||
       shortuid.includes(q) ||
+      fqdn.includes(q) ||
       desc.includes(q) ||
       clid.includes(q) ||
       abstime.includes(q) ||
@@ -69,6 +97,7 @@ const filteredTenants = computed(() => {
 // --- Sort ---
 function sortValue(t, key) {
   if (key === 'masteroclo') return timerStatusDisplay(t)
+  if (key === 'fqdn') return tenantFqdn(t)
   const v = t[key]
   return v == null ? '' : String(v)
 }
@@ -107,6 +136,7 @@ function sortClass(key) {
 const tenantExportColumns = computed(() => [
   { key: 'pkey', label: 'Pkey' },
   { key: 'shortuid', label: 'UID' },
+  { key: 'fqdn', label: 'FQDN', getValue: (t) => tenantFqdn(t) || '—' },
   { key: 'active', label: 'Active' },
   { key: 'description', label: 'Description' },
   { key: 'clusterclid', label: 'CLID' },
@@ -273,6 +303,14 @@ onMounted(async () => {
             </th>
             <th
               class="th-sortable"
+              title="SIP domain — click a cell to copy"
+              :class="sortClass('fqdn')"
+              @click="setSort('fqdn')"
+            >
+              FQDN
+            </th>
+            <th
+              class="th-sortable"
               title="Click to sort"
               :class="sortClass('active')"
               @click="setSort('active')"
@@ -361,6 +399,21 @@ onMounted(async () => {
           <tr v-for="t in sortedTenants" :key="t.pkey">
             <td>{{ t.pkey }}</td>
             <td class="mono">{{ t.shortuid != null && t.shortuid !== '' ? t.shortuid : '—' }}</td>
+            <td class="mono fqdn-cell">
+              <button
+                v-if="tenantFqdn(t)"
+                type="button"
+                class="fqdn-copy"
+                :class="{ 'fqdn-copy--copied': copiedFqdn === tenantFqdn(t) }"
+                :title="
+                  copiedFqdn === tenantFqdn(t) ? 'Copied' : `Copy ${tenantFqdn(t)}`
+                "
+                @click="copyTenantFqdn(tenantFqdn(t))"
+              >
+                {{ tenantFqdn(t) }}
+              </button>
+              <span v-else>—</span>
+            </td>
             <ListActiveChip :active="t.active" />
             <td>{{ t.description ?? '—' }}</td>
             <td>{{ t.clusterclid != null && t.clusterclid !== '' ? t.clusterclid : '—' }}</td>
@@ -508,6 +561,26 @@ onMounted(async () => {
 .cell-immutable {
   color: var(--pbx-text-muted);
   background: transparent;
+}
+.fqdn-cell {
+  white-space: nowrap;
+}
+.fqdn-copy {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--pbx-link, #2563eb);
+  cursor: pointer;
+  text-align: left;
+}
+.fqdn-copy:hover {
+  text-decoration: underline;
+}
+.fqdn-copy--copied {
+  color: var(--pbx-success, #15803d);
 }
 .th-sortable {
   cursor: pointer;
