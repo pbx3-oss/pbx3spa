@@ -318,7 +318,7 @@ onMounted(async () => {
           label="Max in"
           type="number"
           placeholder="integer"
-          help-pkey="maxin"
+          help-pkey="tenant_maxin"
         />
         <FormField
           id="maxout"
@@ -326,7 +326,7 @@ onMounted(async () => {
           label="Max out"
           type="number"
           placeholder="integer"
-          help-pkey="maxout"
+          help-pkey="tenant_maxout"
         />
       </div>
 

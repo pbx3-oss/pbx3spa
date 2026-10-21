@@ -336,8 +336,20 @@ onMounted(fetchSysglobal)
           type="number"
           label="Absolute Timeout"
         />
-        <FormField id="edit-maxin" v-model="editMaxin" type="number" label="Max In" />
-        <FormField id="edit-maxout" v-model="editMaxout" type="number" label="Max Out" />
+        <FormField
+          id="edit-maxin"
+          v-model="editMaxin"
+          type="number"
+          label="Max In"
+          help-pkey="maxin"
+        />
+        <FormField
+          id="edit-maxout"
+          v-model="editMaxout"
+          type="number"
+          label="Max Out"
+          help-pkey="maxout"
+        />
       </div>
 
       <h2 class="detail-heading">Logging</h2>

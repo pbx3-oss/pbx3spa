@@ -514,7 +514,7 @@ async function confirmAndDelete() {
               label="Max in"
               type="number"
               placeholder="integer"
-              help-pkey="maxin"
+              help-pkey="tenant_maxin"
             />
             <FormField
               id="edit-maxout"
@@ -522,7 +522,7 @@ async function confirmAndDelete() {
               label="Max out"
               type="number"
               placeholder="integer"
-              help-pkey="maxout"
+              help-pkey="tenant_maxout"
             />
           </div>
 
