@@ -49,9 +49,8 @@ const clusterclid = ref('')
 const localarea = ref(CLUSTER_CREATE_DEFAULTS.localarea ?? '')
 const localdplan = ref(CLUSTER_CREATE_DEFAULTS.localdplan ?? '')
 const extLen = ref(String(CLUSTER_CREATE_DEFAULTS.ext_len ?? '3'))
-const chanmax = ref('3')
 const maxin = ref(String(CLUSTER_CREATE_DEFAULTS.maxin ?? '30'))
-const voipMax = ref(String(CLUSTER_CREATE_DEFAULTS.voip_max ?? '30'))
+const maxout = ref(String(CLUSTER_CREATE_DEFAULTS.maxout ?? '30'))
 const error = ref('')
 const loading = ref(false)
 const pkeyInput = ref(null)
@@ -83,9 +82,8 @@ function resetForm() {
   localarea.value = CLUSTER_CREATE_DEFAULTS.localarea ?? ''
   localdplan.value = CLUSTER_CREATE_DEFAULTS.localdplan ?? ''
   extLen.value = String(CLUSTER_CREATE_DEFAULTS.ext_len ?? '3')
-  chanmax.value = '3'
   maxin.value = String(CLUSTER_CREATE_DEFAULTS.maxin ?? '30')
-  voipMax.value = String(CLUSTER_CREATE_DEFAULTS.voip_max ?? '30')
+  maxout.value = String(CLUSTER_CREATE_DEFAULTS.maxout ?? '30')
   Object.assign(formAdvanced, buildInitialFormAdvanced())
   Object.assign(formTimers, buildInitialFormTimers())
   Object.assign(formCallRecording, buildInitialFormCallRecording())
@@ -125,9 +123,8 @@ async function onSubmit(e) {
       ...(localarea.value.trim() !== '' && { localarea: localarea.value.trim() }),
       ...(localdplan.value.trim() !== '' && { localdplan: localdplan.value.trim() }),
       ...(parseNum(extLen.value) !== undefined && { ext_len: parseNum(extLen.value) }),
-      ...(parseNum(chanmax.value) !== undefined && { chanmax: parseNum(chanmax.value) }),
       ...(parseNum(maxin.value) !== undefined && { maxin: parseNum(maxin.value) }),
-      ...(parseNum(voipMax.value) !== undefined && { voip_max: parseNum(voipMax.value) }),
+      ...(parseNum(maxout.value) !== undefined && { maxout: parseNum(maxout.value) }),
       ...buildTimersPayload(formTimers),
       ...buildAdvancedPayload(formAdvanced),
       ...buildCallRecordingPayload(formCallRecording),
@@ -206,9 +203,8 @@ onMounted(async () => {
     clusterclid,
     localarea,
     localdplan,
-    chanmax,
     maxin,
-    voip_max: voipMax,
+    maxout,
     abstimeout: toRef(formTimers, 'abstimeout'),
     masteroclo: toRef(formTimers, 'masteroclo')
   })
@@ -317,19 +313,20 @@ onMounted(async () => {
       <h2 class="detail-heading">Settings</h2>
       <div class="form-fields">
         <FormField
-          id="chanmax"
-          v-model="chanmax"
-          label="ChanMax"
+          id="maxin"
+          v-model="maxin"
+          label="Max in"
           type="number"
           placeholder="integer"
+          help-pkey="tenant_maxin"
         />
-        <FormField id="maxin" v-model="maxin" label="Max in" type="number" placeholder="integer" />
         <FormField
-          id="voip-max"
-          v-model="voipMax"
-          label="VoIP max"
+          id="maxout"
+          v-model="maxout"
+          label="Max out"
           type="number"
           placeholder="integer"
+          help-pkey="tenant_maxout"
         />
       </div>
 

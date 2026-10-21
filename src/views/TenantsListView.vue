@@ -77,7 +77,7 @@ const filteredTenants = computed(() => {
     const desc = (t.description ?? '').toString().toLowerCase()
     const clid = (t.clusterclid ?? '').toString().toLowerCase()
     const abstime = (t.abstimeout ?? '').toString().toLowerCase()
-    const chanmax = (t.chanmax ?? '').toString().toLowerCase()
+    const maxout = tenantMaxOutDisplay(t).toLowerCase()
     const timer = (t.masteroclo ?? '').toString().toLowerCase()
     const active = (t.active ?? '').toString().toLowerCase()
     return (
@@ -87,17 +87,25 @@ const filteredTenants = computed(() => {
       desc.includes(q) ||
       clid.includes(q) ||
       abstime.includes(q) ||
-      chanmax.includes(q) ||
+      maxout.includes(q) ||
       timer.includes(q) ||
       active.includes(q)
     )
   })
 })
 
+/** Prefer maxout; fall back to legacy chanmax for list display. */
+function tenantMaxOutDisplay(t) {
+  if (t?.maxout != null && t.maxout !== '') return String(t.maxout)
+  if (t?.chanmax != null && t.chanmax !== '') return String(t.chanmax)
+  return ''
+}
+
 // --- Sort ---
 function sortValue(t, key) {
   if (key === 'masteroclo') return timerStatusDisplay(t)
   if (key === 'fqdn') return tenantFqdn(t)
+  if (key === 'maxout') return tenantMaxOutDisplay(t)
   const v = t[key]
   return v == null ? '' : String(v)
 }
@@ -141,7 +149,7 @@ const tenantExportColumns = computed(() => [
   { key: 'description', label: 'Description' },
   { key: 'clusterclid', label: 'CLID' },
   { key: 'abstimeout', label: 'Abstimeout' },
-  { key: 'chanmax', label: 'Chanmax' },
+  { key: 'maxout', label: 'Max out', getValue: (t) => tenantMaxOutDisplay(t) || '—' },
   { key: 'masteroclo', label: 'Schedule', getValue: (t) => timerStatusDisplay(t) }
 ])
 
@@ -257,7 +265,7 @@ onMounted(async () => {
           autocorrect="off"
           spellcheck="false"
           class="filter-input"
-          placeholder="Filter by name, active, description, CLID, Abstime, ChanMax, or timer"
+          placeholder="Filter by name, active, description, CLID, Abstime, Max out, or timer"
           aria-label="Filter tenants"
         />
       </p>
@@ -344,10 +352,10 @@ onMounted(async () => {
             <th
               class="th-sortable"
               title="Click to sort"
-              :class="sortClass('chanmax')"
-              @click="setSort('chanmax')"
+              :class="sortClass('maxout')"
+              @click="setSort('maxout')"
             >
-              ChanMax
+              Max out
             </th>
             <th
               class="th-sortable"
@@ -418,7 +426,7 @@ onMounted(async () => {
             <td>{{ t.description ?? '—' }}</td>
             <td>{{ t.clusterclid != null && t.clusterclid !== '' ? t.clusterclid : '—' }}</td>
             <td>{{ t.abstimeout != null && t.abstimeout !== '' ? t.abstimeout : '—' }}</td>
-            <td>{{ t.chanmax != null && t.chanmax !== '' ? t.chanmax : '—' }}</td>
+            <td>{{ tenantMaxOutDisplay(t) || '—' }}</td>
             <td>{{ timerStatusDisplay(t) }}</td>
             <td>
               <router-link

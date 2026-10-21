@@ -50,7 +50,6 @@ const editSessiontimout = ref('')
 const editSendedomain = ref('YES')
 const editSipflood = ref('')
 const editSysop = ref('')
-const editVoipmax = ref('')
 const editCosstart = ref('ON')
 
 const globalsHeading = computed(() => {
@@ -86,7 +85,6 @@ function syncEditFromSysglobal() {
     sd === true || sd === 1 || sd === 'YES' || sd === 'yes' ? 'YES' : 'NO'
   editSipflood.value = g.sipflood ?? ''
   editSysop.value = g.sysop != null ? String(g.sysop) : ''
-  editVoipmax.value = g.voipmax != null ? String(g.voipmax) : ''
   const cs = g.cosstart
   editCosstart.value =
     cs === false || cs === 0 || cs === 'OFF' || cs === 'off' || cs === 'NO' || cs === 'no'
@@ -205,8 +203,6 @@ async function saveEdit(e) {
       editSipflood.value && editSipflood.value.trim() !== '' ? editSipflood.value.trim() : null
     body.sysop =
       editSysop.value !== '' && editSysop.value != null ? parseInt(editSysop.value, 10) : null
-    body.voipmax =
-      editVoipmax.value !== '' && editVoipmax.value != null ? parseInt(editVoipmax.value, 10) : null
     body.cosstart = editCosstart.value === 'OFF' ? 'OFF' : 'ON'
 
     await getApiClient().put('sysglobals', body)
@@ -340,9 +336,20 @@ onMounted(fetchSysglobal)
           type="number"
           label="Absolute Timeout"
         />
-        <FormField id="edit-maxin" v-model="editMaxin" type="number" label="Max In" />
-        <FormField id="edit-maxout" v-model="editMaxout" type="number" label="Max Out" />
-        <FormField id="edit-voipmax" v-model="editVoipmax" type="number" label="VoIP Max" />
+        <FormField
+          id="edit-maxin"
+          v-model="editMaxin"
+          type="number"
+          label="Max In"
+          help-pkey="maxin"
+        />
+        <FormField
+          id="edit-maxout"
+          v-model="editMaxout"
+          type="number"
+          label="Max Out"
+          help-pkey="maxout"
+        />
       </div>
 
       <h2 class="detail-heading">Logging</h2>

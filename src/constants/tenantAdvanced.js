@@ -3,8 +3,9 @@
  * Used by TenantCreateView and TenantDetailView so we don't duplicate keys, defaults, or payload logic.
  * Defaults and types align with pbx3 db_sql/sqlite_create_tenant.sql and pbx3api TenantController.
  *
- * Per-tenant settings live in API table `cluster` (GET/PUT /tenants/:id). Instance-wide defaults live in
- * `globals` (GET/PUT /sysglobals); overlap (e.g. maxin, voipmax) is instance vs tenant scope — edit tenants for per-tenant values.
+ * Per-tenant settings live in API table `cluster` (GET/PUT /tenants/:id). Instance ceilings live in
+ * `globals` (GET/PUT /sysglobals). Call concurrency lock: tenant+instance **maxin/maxout** only —
+ * hide **voip_max** / **chanmax** (see CALL_CONCURRENCY_LIMITS_REQUIREMENTS.md).
  */
 
 // Defaults from sqlite_create_tenant.sql (cluster) and Tenant $attributes where applicable.
@@ -33,6 +34,7 @@ export const CLUSTER_CREATE_DEFAULTS = {
   ext_len: '3',
   lterm: false,
   maxin: '30',
+  maxout: '30',
   mixmonitor: '',
   monitor_out: '/var/spool/asterisk/monout/',
   monitor_stage: '/var/spool/asterisk/monstage/',
@@ -56,8 +58,7 @@ export const CLUSTER_CREATE_DEFAULTS = {
   syspass: '',
   usemohcustom: 'NO',
   vmail_age: '60',
-  voice_instr: true,
-  voip_max: '30'
+  voice_instr: true
 }
 
 // Timers (after Settings, before Advanced). Alphabetical by label.
