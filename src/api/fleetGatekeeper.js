@@ -365,6 +365,17 @@ export function pruneFleetReconcileOrphans(body = { confirm: true }) {
   })
 }
 
+/**
+ * Probe a home API for KSUID / FQDN / sitename (Gatekeeper → node fleet token).
+ * @param {string} apiBaseUrl e.g. https://192.168.1.31:44300/api
+ */
+export function probeFleetInstanceIdentity(apiBaseUrl) {
+  return gkFetch('/api/v1/instances/probe-identity', {
+    method: 'POST',
+    body: JSON.stringify({ api_base_url: apiBaseUrl })
+  })
+}
+
 /** @param {Record<string, unknown>} body */
 export function registerFleetInstance(body) {
   return gkFetch('/api/v1/instances', {

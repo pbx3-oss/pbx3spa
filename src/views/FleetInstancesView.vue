@@ -9,6 +9,7 @@ import {
   listFleetTenants,
   refreshFleetSession,
   registerFleetInstance,
+  probeFleetInstanceIdentity,
   patchFleetInstance,
   decommissionFleetInstance,
   removeFleetInstanceFromCatalog,
@@ -36,6 +37,7 @@ const canEdge = ref(false)
 
 const showRegister = ref(false)
 const registerBusy = ref(false)
+const probeBusy = ref(false)
 const reg = ref({
   id: '',
   fqdn: '',
@@ -319,6 +321,34 @@ async function doRemoveFromCatalog(row) {
   }
 }
 
+async function doProbeIdentity() {
+  actionError.value = ''
+  const api = reg.value.api_base_url.trim().replace(/\/$/, '')
+  if (!api) {
+    actionError.value = 'Enter API base URL first (e.g. https://192.168.1.31:44300/api)'
+    return
+  }
+  probeBusy.value = true
+  try {
+    const data = await probeFleetInstanceIdentity(api)
+    if (data?.id) reg.value.id = String(data.id)
+    if (data?.fqdn) reg.value.fqdn = String(data.fqdn)
+    if (data?.api_base_url) {
+      reg.value.api_base_url = String(data.api_base_url)
+    } else {
+      reg.value.api_base_url = api.endsWith('/api') ? api : `${api}/api`
+    }
+    const site = data?.sitename != null ? String(data.sitename).trim() : ''
+    if (site && !reg.value.label.trim()) {
+      reg.value.label = site
+    }
+  } catch (e) {
+    actionError.value = e?.message || 'Probe failed'
+  } finally {
+    probeBusy.value = false
+  }
+}
+
 async function doRegister() {
   actionError.value = ''
   registerBusy.value = true
@@ -514,17 +544,10 @@ onUnmounted(() => {
     >
       <h2>Register instance</h2>
       <p class="hint">
-        <code>id</code> must match node <code>globals.id</code> (KSUID). Probe uses
-        <code>api_base_url</code> → <code>/up</code>.
+        Paste the home <code>api_base_url</code>, then <strong>Probe</strong> to fill KSUID / FQDN /
+        Label from the node (fleet service token). Register still verifies <code>/up</code> unless
+        skipped.
       </p>
-      <label>
-        Instance id (KSUID)
-        <input v-model="reg.id" required autocomplete="off" />
-      </label>
-      <label>
-        FQDN
-        <input v-model="reg.fqdn" required placeholder="08jzwn.pbx3.com" autocomplete="off" />
-      </label>
       <label>
         API base URL
         <input
@@ -533,6 +556,24 @@ onUnmounted(() => {
           placeholder="https://08jzwn.pbx3.com:44300/api"
           autocomplete="off"
         />
+      </label>
+      <div class="register-probe-row">
+        <button
+          type="button"
+          class="secondary"
+          :disabled="probeBusy || registerBusy || !reg.api_base_url.trim()"
+          @click="doProbeIdentity"
+        >
+          {{ probeBusy ? 'Probing…' : 'Probe identity' }}
+        </button>
+      </div>
+      <label>
+        Instance id (KSUID)
+        <input v-model="reg.id" required autocomplete="off" />
+      </label>
+      <label>
+        FQDN
+        <input v-model="reg.fqdn" required placeholder="08jzwn.pbx3.com" autocomplete="off" />
       </label>
       <label>
         Label
@@ -914,6 +955,14 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+}
+.register-probe-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.register-probe-row .secondary {
+  min-height: 2.25rem;
 }
 .register-box input:not([type='checkbox']),
 .register-box select,
