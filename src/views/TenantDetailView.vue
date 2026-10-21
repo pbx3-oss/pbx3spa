@@ -56,9 +56,8 @@ const editLocalarea = ref('')
 const editLocaldplan = ref('')
 const editExtLen = ref('3')
 const editParkOverlay = ref('')
-const editChanmax = ref('')
 const editMaxin = ref('')
-const editVoipMax = ref('')
+const editMaxout = ref('')
 const saveError = ref('')
 const saving = ref(false)
 const deleteError = ref('')
@@ -130,9 +129,15 @@ function syncEditFromTenant() {
   editLocalarea.value = t.localarea != null && t.localarea !== '' ? String(t.localarea) : ''
   editLocaldplan.value = t.localdplan != null && t.localdplan !== '' ? String(t.localdplan) : ''
   editExtLen.value = t.ext_len != null && t.ext_len !== '' ? String(t.ext_len) : '3'
-  editChanmax.value = t.chanmax != null && t.chanmax !== '' ? String(t.chanmax) : ''
   editMaxin.value = t.maxin != null && t.maxin !== '' ? String(t.maxin) : ''
-  editVoipMax.value = t.voip_max != null && t.voip_max !== '' ? String(t.voip_max) : ''
+  // Transition: show chanmax when maxout empty (CALL_CONCURRENCY_LIMITS_REQUIREMENTS §2.2)
+  if (t.maxout != null && t.maxout !== '') {
+    editMaxout.value = String(t.maxout)
+  } else if (t.chanmax != null && t.chanmax !== '') {
+    editMaxout.value = String(t.chanmax)
+  } else {
+    editMaxout.value = ''
+  }
   function syncKeysToForm(keys, form) {
     for (const k of keys) {
       const v = t[k]
@@ -307,9 +312,8 @@ async function saveEdit(e) {
         : { localarea: null }),
       ...(editLocaldplan.value.trim() !== '' && { localdplan: editLocaldplan.value.trim() }),
       ...(parseNum(editExtLen.value) !== undefined && { ext_len: parseNum(editExtLen.value) }),
-      chanmax: editChanmax.value.trim() ? editChanmax.value.trim() : undefined,
       ...(parseNum(editMaxin.value) !== undefined && { maxin: parseNum(editMaxin.value) }),
-      ...(parseNum(editVoipMax.value) !== undefined && { voip_max: parseNum(editVoipMax.value) }),
+      ...(parseNum(editMaxout.value) !== undefined && { maxout: parseNum(editMaxout.value) }),
       ...buildTimersPayload(formTimers),
       ...buildAdvancedPayload(formAdvanced),
       ...buildCallRecordingPayload(formCallRecording),
@@ -505,25 +509,20 @@ async function confirmAndDelete() {
           <h2 class="detail-heading">Settings</h2>
           <div class="form-fields">
             <FormField
-              id="edit-chanmax"
-              v-model="editChanmax"
-              label="ChanMax"
-              type="text"
-              placeholder="integer"
-            />
-            <FormField
               id="edit-maxin"
               v-model="editMaxin"
               label="Max in"
               type="number"
               placeholder="integer"
+              help-pkey="maxin"
             />
             <FormField
-              id="edit-voip-max"
-              v-model="editVoipMax"
-              label="VoIP max"
+              id="edit-maxout"
+              v-model="editMaxout"
+              label="Max out"
               type="number"
               placeholder="integer"
+              help-pkey="maxout"
             />
           </div>
 
