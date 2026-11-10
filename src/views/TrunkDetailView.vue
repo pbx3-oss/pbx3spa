@@ -93,6 +93,7 @@ function normalizeYesNo(val) {
 
 const editDevicerec = ref('None')
 const editTransform = ref('')
+const editInboundTransform = ref('')
 const editPjsipOverlay = ref('')
 const saveError = ref('')
 const saving = ref(false)
@@ -130,6 +131,7 @@ async function fetchTrunk() {
     const isEgressPkey =
       trunk.value?.pkey === 'Egress' || trunk.value?.pkey === 'EgressFailover'
     editTransform.value = rawTransform || (isEgressPkey ? UK_EGRESS_TRANSFORM : '')
+    editInboundTransform.value = (trunk.value?.inbound_transform ?? '').toString()
     editPjsipOverlay.value = trunk.value?.pjsip_overlay ?? ''
     if (isManufacturedFleetEgress.value) {
       editActive.value = 'YES'
@@ -221,7 +223,8 @@ async function saveEdit(e) {
             // Heal empty fleet Egress — national face must not reach Brindley strip=2 raw.
             if (trunk.value?.pkey === 'Egress') return UK_EGRESS_TRANSFORM
             return undefined
-          })()
+          })(),
+          inbound_transform: editInboundTransform.value.trim() || null
         }
     if (!manufactured && auth.isAdmin) {
       body.pjsip_overlay = editPjsipOverlay.value.trim() || null
@@ -499,7 +502,7 @@ async function confirmAndDelete() {
                 label="Device recording"
                 :options="devicerecOptions"
               />
-              <FormField id="edit-transform" v-model="editTransform" label="Transform" type="text" />
+              <FormField id="edit-transform" v-model="editTransform" label="Outbound transform" type="text" />
             </template>
           </div>
 
@@ -515,7 +518,14 @@ async function confirmAndDelete() {
                 label="Device recording"
                 :options="devicerecOptions"
               />
-              <FormField id="edit-transform" v-model="editTransform" label="Transform" type="text" />
+              <FormField id="edit-transform" v-model="editTransform" label="Outbound transform" type="text" />
+              <FormField
+                id="edit-inbound_transform"
+                v-model="editInboundTransform"
+                label="Inbound transform"
+                type="text"
+                placeholder="e.g. 0:+44 for UK national DIDs"
+              />
               <FormField
                 v-if="auth.isAdmin"
                 id="edit-pjsip_overlay"
