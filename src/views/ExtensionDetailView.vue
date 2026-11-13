@@ -1222,8 +1222,8 @@ const panelTitleTenantSuffix = computed(() => {
           <h2 id="provision-preview-title" class="sip-modal-title">Provision expand preview</h2>
           <div class="sip-modal-body">
             <p class="provision-preview-hint">
-              Dry-run of the current (or draft) stream — secrets masked. Does not send to the phone
-              or change provision credentials.
+              Dry-run of the current (or draft) stream — same body the phone would get (including
+              secrets). Does not send to the phone or change provision credentials.
             </p>
             <p v-if="provisionPreviewLoading">Expanding…</p>
             <p v-else-if="provisionPreviewError" class="error">{{ provisionPreviewError }}</p>
